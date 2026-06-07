@@ -1,0 +1,29 @@
+[project]
+name = "dacl-agent"
+version = "0.1.0"
+description = "DACL Enhanced Agent — Deterministic AI Contract Logic with Amortized Intelligence"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.3",
+    "jsonlogic-py>=0.2.4",
+    "networkx>=3.6.1",
+    "openai>=2.38.0",
+    "pydantic>=2.13.4",
+    "pypdf>=5.0",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.29",
+    "rich>=15.0.0",
+    "uvicorn[standard]>=0.48.0",
+    "z3-solver>=4.13.0",
+    "langsmith>=0.1.0",
+    "openpyxl>=3.1.0",
+    "python-docx>=1.1.0",
+    "mcp>=1.0.0",
+]
+
+
+[project.scripts]
+dacl-agent = "dacl_agent.main:main"
+
+[tool.uv]
+package = true

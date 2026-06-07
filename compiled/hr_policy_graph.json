@@ -1,0 +1,110 @@
+{
+  "graph_id": "hr_policy_graph",
+  "version": "v1.0.0",
+  "domain": "hr_leave_policy",
+  "description": "HR Leave Approval Policy - Version 1.5",
+  "rules": [
+    {
+      "rule_id": "auto_approve_short_leave",
+      "description": "Auto-approve short leave for employees with tenure >= 1 year and leave days <= 2.",
+      "priority": 230,
+      "conditions": [
+        {
+          "field": "leave_days",
+          "operator": "<=",
+          "value": 2
+        },
+        {
+          "field": "tenure_years",
+          "operator": ">=",
+          "value": 1
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "decision",
+        "formula": "'auto_approved'",
+        "description": "Automatically approve short leave requests."
+      },
+      "audit_clause": "HR Policy 2.1 - Short Leave Entitlement",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "manager_approval_required",
+      "description": "Require manager approval for leave requests between 3 and 10 days.",
+      "priority": 220,
+      "conditions": [
+        {
+          "field": "leave_days",
+          "operator": ">",
+          "value": 2
+        },
+        {
+          "field": "leave_days",
+          "operator": "<=",
+          "value": 10
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "decision",
+        "formula": "'pending_manager_approval'",
+        "description": "Flag leave requests for manager approval."
+      },
+      "audit_clause": "HR Policy 2.2 - Standard Leave Approval",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "hr_director_approval_required",
+      "description": "Require HR Director approval for leave requests exceeding 10 days.",
+      "priority": 210,
+      "conditions": [
+        {
+          "field": "leave_days",
+          "operator": ">",
+          "value": 10
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "decision",
+        "formula": "'pending_hr_director_approval'",
+        "description": "Flag leave requests for HR Director approval."
+      },
+      "audit_clause": "HR Policy 2.3 - Extended Leave Approval",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "probation_block",
+      "description": "Block leave requests for employees with tenure less than 1 year.",
+      "priority": 200,
+      "conditions": [
+        {
+          "field": "tenure_years",
+          "operator": "<",
+          "value": 1
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "decision",
+        "formula": "'blocked_probation'",
+        "description": "Block leave requests for employees in probation period."
+      },
+      "audit_clause": "HR Policy 3.1 - Probation Period Restrictions",
+      "temporal_from": null,
+      "temporal_to": null
+    }
+  ],
+  "default_action": {
+    "output_field": "decision",
+    "formula": "'manager_notification'",
+    "description": "Default fallback for standard leave flow with manager notification"
+  },
+  "optimization_strategy": "rete",
+  "compiled_at": "2026-06-04T15:31:38.494005+00:00",
+  "company": "default"
+}

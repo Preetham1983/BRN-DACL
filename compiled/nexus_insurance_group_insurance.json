@@ -1,0 +1,206 @@
+{
+  "graph_id": "nexus_insurance_group_insurance",
+  "version": "v1.0.0",
+  "domain": "INSURANCE",
+  "description": "Master underwriting and premium calculation policy for Nexus Insurance Group across multiple insurance lines.",
+  "rules": [
+    {
+      "rule_id": "l0001",
+      "description": "Life insurance premium calculation for age 18-25, BMI < 18.5, smoker, pre-existing conditions.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "age",
+          "operator": "<=",
+          "value": 25
+        },
+        {
+          "field": "bmi",
+          "operator": "<",
+          "value": 18.5
+        },
+        {
+          "field": "smoker",
+          "operator": "==",
+          "value": "Y"
+        },
+        {
+          "field": "pre_existing",
+          "operator": "==",
+          "value": "Y"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "tier",
+        "formula": "'PREFERRED'",
+        "description": "Assign preferred tier for life insurance."
+      },
+      "audit_clause": "Policy Section 1",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "h0001",
+      "description": "Health insurance premium calculation for age 18-25, condition count 0, coverage tier BASIC.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "age",
+          "operator": "<=",
+          "value": 25
+        },
+        {
+          "field": "condition_count",
+          "operator": "==",
+          "value": 0
+        },
+        {
+          "field": "coverage_tier",
+          "operator": "==",
+          "value": "BASIC"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "risk_class",
+        "formula": "'MINIMAL'",
+        "description": "Assign minimal risk class for health insurance."
+      },
+      "audit_clause": "Policy Section 2",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "a0001",
+      "description": "Auto insurance premium calculation for driver age 18-24, vehicle age <= 2 years, claim count 0, usage type PERSONAL.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "driver_age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "driver_age",
+          "operator": "<=",
+          "value": 24
+        },
+        {
+          "field": "vehicle_age_years",
+          "operator": "<=",
+          "value": 2
+        },
+        {
+          "field": "claim_count",
+          "operator": "==",
+          "value": 0
+        },
+        {
+          "field": "usage_type",
+          "operator": "==",
+          "value": "PERSONAL"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "risk_class",
+        "formula": "'MEDIUM'",
+        "description": "Assign medium risk class for auto insurance."
+      },
+      "audit_clause": "Policy Section 3",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "p0001",
+      "description": "Property insurance premium calculation for property value < $100,000, construction type WOOD, location risk 1, property age <= 15 years.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "property_value",
+          "operator": "<",
+          "value": 100000
+        },
+        {
+          "field": "construction_type",
+          "operator": "==",
+          "value": "WOOD"
+        },
+        {
+          "field": "location_risk",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "field": "property_age_years",
+          "operator": "<=",
+          "value": 15
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "risk_class",
+        "formula": "'MINIMAL'",
+        "description": "Assign minimal risk class for property insurance."
+      },
+      "audit_clause": "Policy Section 4",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "b0001",
+      "description": "Business liability insurance premium calculation for annual revenue < $500,000, employee count <= 10, industry risk 1, sector type SERVICE.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "annual_revenue",
+          "operator": "<",
+          "value": 500000
+        },
+        {
+          "field": "employee_count",
+          "operator": "<=",
+          "value": 10
+        },
+        {
+          "field": "industry_risk",
+          "operator": "==",
+          "value": 1
+        },
+        {
+          "field": "sector_type",
+          "operator": "==",
+          "value": "SERVICE"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "risk_class",
+        "formula": "'MINIMAL'",
+        "description": "Assign minimal risk class for business liability insurance."
+      },
+      "audit_clause": "Policy Section 5",
+      "temporal_from": null,
+      "temporal_to": null
+    }
+  ],
+  "default_action": {
+    "output_field": "tier",
+    "formula": "'C'",
+    "description": "Default fallback tier"
+  },
+  "optimization_strategy": "rete",
+  "compiled_at": "2026-05-29T09:34:00.667228+00:00",
+  "company": "default"
+}

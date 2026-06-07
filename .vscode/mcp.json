@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "dacl-validation-engine": {
+      "type": "sse",
+      "url": "http://127.0.0.1:8080/sse",
+      "env": {
+        "DACL_API_KEY": "dacl-HdpoHmpqTYWifp_ErfEgvlvVIeQ7nN7xu3yasTR9ZYc"
+      }
+    }
+  }
+}

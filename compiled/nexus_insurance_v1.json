@@ -1,0 +1,139 @@
+{
+  "graph_id": "nexus_insurance",
+  "version": "v1.0.0",
+  "domain": "insurance",
+  "description": "Life insurance premium calculation rules for Nexus Insurance Group.",
+  "rules": [
+    {
+      "rule_id": "L0001_tier",
+      "description": "Assign tier for age 18-25, BMI < 18.5, smoker=Y, pre-existing condition=Y.",
+      "priority": 200,
+      "conditions": [
+        {
+          "field": "age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "age",
+          "operator": "<=",
+          "value": 25
+        },
+        {
+          "field": "bmi",
+          "operator": "<",
+          "value": 18.5
+        },
+        {
+          "field": "smoker",
+          "operator": "==",
+          "value": "Y"
+        },
+        {
+          "field": "pre_existing",
+          "operator": "==",
+          "value": "Y"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "tier",
+        "formula": "'PREFERRED'",
+        "description": "Assign tier PREFERRED."
+      },
+      "audit_clause": "Policy Section 1",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "L0001_rate",
+      "description": "Assign rate for age 18-25, BMI < 18.5, smoker=Y, pre-existing condition=Y.",
+      "priority": 190,
+      "conditions": [
+        {
+          "field": "age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "age",
+          "operator": "<=",
+          "value": 25
+        },
+        {
+          "field": "bmi",
+          "operator": "<",
+          "value": 18.5
+        },
+        {
+          "field": "smoker",
+          "operator": "==",
+          "value": "Y"
+        },
+        {
+          "field": "pre_existing",
+          "operator": "==",
+          "value": "Y"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "rate",
+        "formula": "0.0141",
+        "description": "Assign rate 0.0141."
+      },
+      "audit_clause": "Policy Section 1",
+      "temporal_from": null,
+      "temporal_to": null
+    },
+    {
+      "rule_id": "L0001_annual_premium",
+      "description": "Calculate annual premium for age 18-25, BMI < 18.5, smoker=Y, pre-existing condition=Y.",
+      "priority": 180,
+      "conditions": [
+        {
+          "field": "age",
+          "operator": ">=",
+          "value": 18
+        },
+        {
+          "field": "age",
+          "operator": "<=",
+          "value": 25
+        },
+        {
+          "field": "bmi",
+          "operator": "<",
+          "value": 18.5
+        },
+        {
+          "field": "smoker",
+          "operator": "==",
+          "value": "Y"
+        },
+        {
+          "field": "pre_existing",
+          "operator": "==",
+          "value": "Y"
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "annual_premium",
+        "formula": "coverage_amount * 0.0141",
+        "description": "Calculate annual premium as coverage_amount * 0.0141."
+      },
+      "audit_clause": "Policy Section 1",
+      "temporal_from": null,
+      "temporal_to": null
+    }
+  ],
+  "default_action": {
+    "output_field": "tier",
+    "formula": "'C'",
+    "description": "Default fallback tier"
+  },
+  "optimization_strategy": "rete",
+  "compiled_at": "2026-06-01T11:15:46.914270+00:00",
+  "company": "NEXUS"
+}

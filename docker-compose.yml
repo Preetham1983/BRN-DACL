@@ -1,0 +1,61 @@
+services:
+
+  # ── Backend: FastAPI + Uvicorn ──────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dacl_backend
+    ports:
+      - "8000:8000"
+    # Azure OpenAI credentials — loaded from .env file at project root
+    env_file:
+      - .env
+    volumes:
+      # Bind mount the host 'compiled' directory so local JSON policies are available in Docker
+      - ./compiled:/app/compiled
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── MCP: Model Context Protocol Server ──────────────────────────────────────
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dacl_mcp
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - DACL_BASE_URL=http://backend:8000/api/v1/workflow
+      - DACL_MCP_HOST=0.0.0.0
+    command: python dacl_mcp_server.py
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend: React (Vite build) served by Nginx ───────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dacl_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Named Volumes ─────────────────────────────────────────────────────────────
+volumes:
+  compiled_graphs:
+    # Compiled DACL graphs (.json) survive container restarts.
+    # Pre-seeded by COPY in Dockerfile; new compiles persist here.

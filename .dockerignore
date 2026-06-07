@@ -1,0 +1,32 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets — NEVER bake into image; pass via docker-compose env_file
+.env
+
+# IDE / OS
+.git/
+.gitignore
+.vscode/
+.idea/
+*.DS_Store
+
+# Frontend (handled by its own Dockerfile)
+frontend/node_modules/
+frontend/dist/
+
+# Test files
+test_*.py

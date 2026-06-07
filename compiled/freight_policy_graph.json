@@ -1,0 +1,93 @@
+{
+  "graph_id": "freight_policy_graph",
+  "version": "v1.0.0",
+  "domain": "freight_pricing",
+  "description": "Freight pricing policy for tier classification and rate calculation effective from 2026-01-01 to 2026-12-31.",
+  "rules": [
+    {
+      "rule_id": "tier_a_premium",
+      "description": "Assign Tier A (Premium) for shipments with weight > 1.0 kg and distance > 500 km. Apply premium surcharge.",
+      "priority": 300,
+      "conditions": [
+        {
+          "field": "weight",
+          "operator": ">",
+          "value": 1.0
+        },
+        {
+          "field": "distance",
+          "operator": ">",
+          "value": 500
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "tier",
+        "formula": "'A'",
+        "description": "Assign Tier A and calculate final amount using premium surcharge formula: base_rate = 5.50 + (fuel_index - 4.00) * 0.30; final_amount = base_rate * distance * weight"
+      },
+      "audit_clause": "Section 3.1 - Premium Freight Schedule",
+      "temporal_from": "2026-01-01",
+      "temporal_to": "2026-12-31"
+    },
+    {
+      "rule_id": "tier_b_standard_heavy",
+      "description": "Assign Tier B (Standard Heavy) for shipments with weight > 0.5 kg and distance > 300 km. Apply standard fuel surcharge.",
+      "priority": 200,
+      "conditions": [
+        {
+          "field": "weight",
+          "operator": ">",
+          "value": 0.5
+        },
+        {
+          "field": "distance",
+          "operator": ">",
+          "value": 300
+        }
+      ],
+      "condition_logic": "AND",
+      "action": {
+        "output_field": "tier",
+        "formula": "'B'",
+        "description": "Assign Tier B and calculate final amount using standard fuel surcharge formula: base_rate = 4.10 + (fuel_index - 4.10) * 0.22; final_amount = base_rate * distance * weight"
+      },
+      "audit_clause": "Section 3.2 - Standard Freight Schedule",
+      "temporal_from": "2026-01-01",
+      "temporal_to": "2026-12-31"
+    },
+    {
+      "rule_id": "tier_c_economy",
+      "description": "Assign Tier C (Economy) for shipments with weight <= 0.5 kg or distance <= 300 km. Apply economy rate.",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "weight",
+          "operator": "<=",
+          "value": 0.5
+        },
+        {
+          "field": "distance",
+          "operator": "<=",
+          "value": 300
+        }
+      ],
+      "condition_logic": "OR",
+      "action": {
+        "output_field": "tier",
+        "formula": "'C'",
+        "description": "Assign Tier C and calculate final amount using economy rate formula: base_rate = 2.80; final_amount = base_rate * distance * weight"
+      },
+      "audit_clause": "Section 3.3 - Economy Freight Schedule",
+      "temporal_from": "2026-01-01",
+      "temporal_to": "2026-12-31"
+    }
+  ],
+  "default_action": {
+    "output_field": "tier",
+    "formula": "'C'",
+    "description": "Default fallback tier as per Section 3.3 - Economy Freight Schedule"
+  },
+  "optimization_strategy": "rete",
+  "compiled_at": "2026-05-29T08:16:56.645681+00:00"
+}

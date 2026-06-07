@@ -1,0 +1,15 @@
+{
+  "graph_id": "nexus_insurance",
+  "current_version": 1,
+  "versions": [
+    {
+      "version": 1,
+      "compiled_at": "2026-06-01T11:15:46.914270+00:00",
+      "rule_count": 3,
+      "description": "Life insurance premium calculation rules for Nexus Insurance Group.",
+      "changed_by": "admin",
+      "change_note": "Initial upload",
+      "has_source": true
+    }
+  ]
+}
