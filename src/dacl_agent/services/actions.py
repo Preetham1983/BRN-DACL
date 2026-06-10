@@ -103,6 +103,52 @@ class LogActionHandler:
         return True
 
 
+import urllib.request
+import urllib.error
+import os
+
+class WebhookActionHandler:
+    """Built-in handler: HTTP POST to a configured URL."""
+
+    name = "webhook"
+
+    def execute(
+        self,
+        idempotency_key: str,
+        decision_id:     str,
+        rule_id:         str,
+        output_field:    str,
+        output_value:    Any,
+        facts:           dict[str, Any],
+    ) -> bool:
+        webhook_url = os.getenv("WEBHOOK_URL")
+        if not webhook_url:
+            log.info("[WEBHOOK] Skipped because WEBHOOK_URL is not set.")
+            return True
+            
+        payload = {
+            "idempotency_key": idempotency_key,
+            "decision_id": decision_id,
+            "rule_id": rule_id,
+            "output_field": output_field,
+            "output_value": output_value,
+            "facts": facts,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(webhook_url, data=data, headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status >= 200 and response.status < 300:
+                    log.info("[WEBHOOK] Successfully sent to %s", webhook_url)
+                    return True
+                else:
+                    log.error("[WEBHOOK] Failed to send: HTTP %s", response.status)
+                    return False
+        except Exception as e:
+            log.error("[WEBHOOK] Exception: %s", e)
+            return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Action Registry
 # ─────────────────────────────────────────────────────────────────────────────
@@ -116,9 +162,9 @@ class ActionRegistry:
     """
 
     def __init__(self):
-        # Always include the log handler for every output
+        # Always include the log handler and webhook handler for every output
         self._map: dict[tuple[str, str], list[ActionHandler]] = {}
-        self._global: list[ActionHandler] = [LogActionHandler()]
+        self._global: list[ActionHandler] = [LogActionHandler(), WebhookActionHandler()]
 
     def register(
         self,

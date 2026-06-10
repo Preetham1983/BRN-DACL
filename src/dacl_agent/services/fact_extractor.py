@@ -46,7 +46,8 @@ Output JSON with this exact schema:
   "facts": {
     "field_name": value,
     ...
-  }
+  },
+  "confidence_score": float
 }
 
 CRITICAL RULES:
@@ -55,6 +56,7 @@ CRITICAL RULES:
 - If a user mentions a topic but omits the actual value (e.g. "for my storefront" but no size given), do NOT invent the value. Leave it out.
 - Map synonyms (e.g. "body mass index" -> "bmi", "tobacco" -> "smoker").
 - Output ONLY raw JSON. No markdown, no explanation.
+- For confidence_score, output a float between 0.0 and 1.0 indicating how confident you are in the extracted facts. Lower the score if the user query is ambiguous, missing key details, or contradictory.
 """.strip()
 
 
@@ -121,6 +123,10 @@ def extract_facts(
                     )
                     for k in unknown:
                         data["facts"].pop(k, None)
+
+            # Set human review flag based on confidence
+            confidence = float(data.get("confidence_score", 1.0))
+            data["requires_human_review"] = confidence < 0.90
 
             return ExtractedFacts(**data)
 

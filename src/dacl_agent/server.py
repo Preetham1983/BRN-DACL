@@ -97,6 +97,11 @@ class _LRUAgentCache:
                 evicted_key, _ = self._cache.popitem(last=False)
                 print(f"[AGENT-CACHE] Evicted least-used agent: '{evicted_key}'")
 
+    def remove(self, key: str) -> None:
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+
     def update_engine(self, key: str, graph: DACLGraph, engine) -> bool:
         with self._lock:
             if key not in self._cache:
@@ -170,7 +175,7 @@ class GraphHotReloader(threading.Thread):
 
     def _reload(self, graph_id: str, path: Path) -> None:
         try:
-            from engine import DACLReteEngine
+            from dacl_agent.services.engine import DACLReteEngine
             raw        = json.loads(path.read_text(encoding="utf-8"))
             new_graph  = DACLGraph.model_validate(raw)
             new_engine = DACLReteEngine(new_graph)
@@ -422,6 +427,29 @@ def list_policies(company: str | None = None):
     return {"policies": policies}
 
 
+@app.delete("/api/policies/{graph_id}")
+def delete_policy(
+    graph_id: str,
+    role: Role = Depends(require_upload)
+):
+    """Delete an entire policy graph and all its versions."""
+    graph_id = _resolve_graph_id(graph_id)
+    
+    if graph_id in _registry and _registry[graph_id].get("is_builtin"):
+        raise HTTPException(400, "Cannot delete built-in policies.")
+        
+    # Remove from disk
+    _versions.delete_policy(graph_id)
+    
+    # Remove from memory
+    if graph_id in _registry:
+        del _registry[graph_id]
+    if _agents.get(graph_id):
+        _agents.remove(graph_id)
+        
+    return {"success": True, "message": f"Policy '{graph_id}' deleted."}
+
+
 @app.get("/api/domains")
 def list_domains():
     """Backward-compatible endpoint — returns built-in domains only."""
@@ -513,6 +541,23 @@ def get_graph(domain_key: str):
     }
 
 
+def _log_audit_trail(response: DACLResponse, domain: str):
+    """Log the deterministic engine evaluation steps for Docker observability."""
+    print(f"\n[{domain}] 🚦 NEW WORKFLOW QUERY RECEIVED", flush=True)
+    print(f"[{domain}] 📝 Extracted Facts: {response.audit.extracted_facts}", flush=True)
+    print(f"[{domain}] 🧠 Rete Engine Evaluation:", flush=True)
+    
+    for r in response.audit.rules_evaluated:
+        status_icon = "✅" if r.matched else "❌"
+        print(f"  {status_icon} Rule: {r.rule_id}", flush=True)
+        for c in r.conditions_evaluated:
+            cond_status = "PASS" if c.get("passed") else "FAIL"
+            print(f"      - {c.get('field')} {c.get('operator')} {c.get('expected_value')} (got: {c.get('fact_value')}) [{cond_status}]", flush=True)
+            
+    print(f"[{domain}] 🎯 Winning Rule: {response.audit.winning_rule_id or 'default'}", flush=True)
+    print(f"[{domain}] 📤 Output: {response.output}\n", flush=True)
+
+
 @app.post("/api/query")
 def run_query(
     req:  QueryRequest,
@@ -526,7 +571,9 @@ def run_query(
         except FileNotFoundError:
             raise HTTPException(400, "Graph not compiled yet. Call /api/compile first.")
     try:
-        return agent.query(req.query).model_dump()
+        response = agent.query(req.query)
+        _log_audit_trail(response, req.domain)
+        return response.model_dump()
     except Exception as exc:
         raise HTTPException(500, str(exc))
 
@@ -587,7 +634,7 @@ async def upload_policy(
     )
 
     # Build and cache the agent with the new engine
-    from engine import DACLReteEngine
+    from dacl_agent.services.engine import DACLReteEngine
     agent        = DACLAgent(graph_id=graph_id, domain=domain, compiled_dir="compiled")
     agent.graph  = graph
     agent.engine = DACLReteEngine(graph)
@@ -643,9 +690,138 @@ async def query_with_document(
         raise HTTPException(422, "Document appears to be empty.")
 
     try:
-        return agent.query(doc_text).model_dump()
+        response = agent.query(doc_text)
+        _log_audit_trail(response, graph_id)
+        return response.model_dump()
     except Exception as exc:
         raise HTTPException(500, str(exc))
+
+import csv
+import io
+
+@app.post("/api/simulate")
+async def simulate_queries(
+    graph_id: str        = Form(...),
+    file:     UploadFile = File(...),
+    role:     Role       = Depends(require_query),
+):
+    """Batch simulate queries from a CSV file (requires query permission).
+    Expected CSV columns: query
+    """
+    agent = _get_agent(graph_id)
+    if agent.engine is None:
+        try:
+            agent.load_precompiled()
+        except FileNotFoundError:
+            raise HTTPException(400, "Graph not compiled yet. Call /api/compile first.")
+
+    content = await file.read()
+    try:
+        content_str = content.decode("utf-8")
+        csv_reader = csv.DictReader(io.StringIO(content_str))
+    except Exception as exc:
+        raise HTTPException(422, f"Could not read CSV file: {exc}")
+
+    results = []
+    success_count = 0
+    total_count = 0
+    
+    for row in csv_reader:
+        if "query" not in row:
+            continue
+        
+        query = row["query"]
+        total_count += 1
+        
+        try:
+            # We bypass agent.query and call extract and engine directly if we want
+            # or just call agent.query. Let's call agent.query
+            raw_response = agent.query(query)
+            _log_audit_trail(raw_response, graph_id)
+            response = raw_response.model_dump()
+            results.append({
+                "query": query,
+                "success": response["success"],
+                "answer": response["answer"],
+                "output": response["output"],
+                "requires_human_review": response.get("requires_human_review", False),
+            })
+            if response["success"]:
+                success_count += 1
+        except Exception as exc:
+            results.append({
+                "query": query,
+                "success": False,
+                "error": str(exc)
+            })
+
+    return {
+        "total_queries": total_count,
+        "successful_queries": success_count,
+        "failed_queries": total_count - success_count,
+        "results": results
+    }
+
+@app.get("/api/schema/{graph_id}")
+def get_graph_schema(
+    graph_id: str,
+    role:     Role = Depends(require_read),
+):
+    """Dynamic Schema Discovery for MCP/Enterprise Clients.
+    Returns a JSON schema of all variables required by the rules in this graph.
+    """
+    graph_id = _resolve_graph_id(graph_id)
+    agent    = _get_agent(graph_id)
+    if agent.engine is None:
+        try:
+            agent.load_precompiled()
+        except FileNotFoundError:
+            raise HTTPException(400, "Graph not compiled yet.")
+
+    # Collect all condition fields and formula variables
+    _BUILTINS = {
+        "math", "min", "max", "abs", "round", "int",
+        "float", "str", "True", "False", "None", "sum", "sorted", "bool", "len",
+    }
+    
+    properties = {}
+    
+    for rule in agent.graph.rules:
+        # Conditions
+        for cond in rule.conditions:
+            if cond.field not in properties:
+                # Infer type from value
+                field_type = "string"
+                if isinstance(cond.value, int):
+                    field_type = "integer"
+                elif isinstance(cond.value, float):
+                    field_type = "number"
+                elif isinstance(cond.value, bool):
+                    field_type = "boolean"
+                
+                properties[cond.field] = {
+                    "type": field_type,
+                    "description": f"Extracted automatically from text."
+                }
+                
+        # Formula Variables
+        formula_vars = re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", rule.action.formula)
+        for var in formula_vars:
+            if var not in _BUILTINS and var not in properties:
+                properties[var] = {
+                    "type": "number",
+                    "description": "Required for mathematical formulas."
+                }
+
+    schema = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": f"{graph_id} Input Schema",
+        "type": "object",
+        "properties": properties,
+        "required": list(properties.keys())
+    }
+    
+    return schema
 
 
 # ─────────────────────────────────────────────────────────────────────────────

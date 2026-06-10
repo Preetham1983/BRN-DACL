@@ -208,4 +208,5 @@ class DACLAgent:
             answer=answer,
             output=final_output,
             audit=audit,
+            requires_human_review=extracted.requires_human_review,
         )

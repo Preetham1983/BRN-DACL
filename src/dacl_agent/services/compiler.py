@@ -117,28 +117,107 @@ def compile_policy(
     Returns:
         Tuple of (DACLGraph, VerificationResult).
     """
-    log.info("[COMPILE] Sending policy to GPT-4o for DACL compilation...")
+    import re
+    
+    # ── PROGRAMMATIC BYPASS FOR LARGE STRUCTURED FILES ────────────────────────
+    # If we detect a large structured file (e.g., > 100 rules), bypass LLM to avoid token limits
+    lines = [line.strip() for line in policy_text.splitlines() if line.strip()]
+    
+    def is_rule_line(l):
+        if l.count('|') != 2 or l.startswith('#') or l.startswith('=') or l.startswith('─'):
+            return False
+        first_part = l.split('|')[0].strip()
+        # Must look like an ID, not "Format : RULE_ID"
+        return re.match(r'^[A-Za-z0-9_-]+$', first_part) is not None
 
-    response = client.chat.completions.create(
-        model=DEPLOYMENT,
-        temperature=0,          # deterministic compilation
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": COMPILER_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Compile this business policy into a DACL graph:\n\n{policy_text}",
+    structured_lines = [l for l in lines if is_rule_line(l)]
+    
+    if len(structured_lines) > 20:
+        log.info("[COMPILE] Detected massive structured rule file (%d rules). Bypassing LLM...", len(structured_lines))
+        rules = []
+        base_priority = 20000
+        
+        for idx, line in enumerate(structured_lines):
+            try:
+                rule_id, cond_str, act_str = [p.strip() for p in line.split('|')]
+                
+                # Parse conditions
+                conditions = []
+                for cond in cond_str.split(','):
+                    cond = cond.strip()
+                    if not cond: continue
+                    # Match field, operator, value
+                    m = re.match(r'^([a-zA-Z0-9_]+)\s*(>=|<=|==|!=|>|<|=)\s*(.*)$', cond)
+                    if m:
+                        field, op, val = m.groups()
+                        if op == '=': op = '=='
+                        conditions.append({"field": field, "operator": op, "value": val})
+                        
+                # Parse actions
+                action_dict = {}
+                for act in act_str.split(','):
+                    act = act.strip()
+                    if not act: continue
+                    m = re.match(r'^([a-zA-Z0-9_]+)\s*=\s*(.*)$', act)
+                    if m:
+                        action_dict[m.group(1)] = m.group(2)
+                        
+                rules.append({
+                    "rule_id": rule_id,
+                    "description": f"Programmatic import rule {rule_id}",
+                    "priority": base_priority - idx,
+                    "conditions": conditions,
+                    "condition_logic": "AND",
+                    "action": {
+                        "output_field": "decision",
+                        "formula": f"'{json.dumps(action_dict)}'",
+                        "description": "Auto-mapped from structured file"
+                    },
+                    "audit_clause": f"Batch Import {rule_id}",
+                    "temporal_from": None,
+                    "temporal_to": None
+                })
+            except Exception as e:
+                log.warning("Failed to parse rule line: %s (%s)", line, e)
+                
+        data = {
+            "graph_id": graph_id,
+            "version": "v1.0.0",
+            "domain": domain,
+            "description": "Programmatically compiled structured policy",
+            "optimization_strategy": "rete",
+            "default_action": {
+                "output_field": "decision",
+                "formula": "'{}'",
+                "description": "Default fallback"
             },
-        ],
-    )
-
-    raw_json = response.choices[0].message.content
-    data     = json.loads(raw_json)
-
-    # Inject compile metadata
-    data["graph_id"]    = graph_id
-    data["domain"]      = domain
-    data["compiled_at"] = datetime.now(timezone.utc).isoformat()
+            "rules": rules,
+            "compiled_at": datetime.now(timezone.utc).isoformat()
+        }
+    else:
+        # ── LLM COMPILATION FOR NATURAL LANGUAGE ───────────────────────────────
+        log.info("[COMPILE] Sending policy to GPT-4o for DACL compilation...")
+    
+        response = client.chat.completions.create(
+            model=DEPLOYMENT,
+            temperature=0,          # deterministic compilation
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": COMPILER_SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"Compile this business policy into a DACL graph:\n\n{policy_text}",
+                },
+            ],
+        )
+    
+        raw_json = response.choices[0].message.content
+        data     = json.loads(raw_json)
+    
+        # Inject compile metadata
+        data["graph_id"]    = graph_id
+        data["domain"]      = domain
+        data["compiled_at"] = datetime.now(timezone.utc).isoformat()
 
     # Validate with Pydantic — catches malformed LLM output immediately
     graph = DACLGraph(**data)

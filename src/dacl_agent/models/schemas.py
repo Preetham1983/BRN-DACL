@@ -141,6 +141,8 @@ class ExtractedFacts(BaseModel):
     domain: str = Field(..., description="The business domain (e.g. freight_pricing)")
     facts: dict[str, Any] = Field(..., description="Extracted fact key-value pairs")
     query_summary: str = Field(..., description="One-line summary of what was asked")
+    confidence_score: float = Field(default=1.0, description="LLM confidence in extraction (0.0 to 1.0)")
+    requires_human_review: bool = Field(default=False, description="Flagged for human review if confidence is low")
 
 
 class RuleMatchResult(BaseModel):
@@ -174,3 +176,4 @@ class DACLResponse(BaseModel):
     answer: str
     output: dict[str, Any]
     audit: AuditTrail
+    requires_human_review: bool = Field(default=False, description="Whether this request needs human intervention")

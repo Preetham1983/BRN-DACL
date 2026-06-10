@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, Users, LogOut, PlayCircle, Terminal } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Users, LogOut, PlayCircle, Terminal, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout({ children }) {
@@ -25,10 +25,16 @@ export default function Layout({ children }) {
             Dashboard
           </Link>
           {user.permissions.includes('query') && (
-            <Link to="/query" className={`nav-item ${location.pathname === '/query' ? 'active' : ''}`}>
-              <PlayCircle size={20} />
-              Query Tester
-            </Link>
+            <>
+              <Link to="/query" className={`nav-item ${location.pathname === '/query' ? 'active' : ''}`}>
+                <PlayCircle size={20} />
+                Query Tester
+              </Link>
+              <Link to="/simulate" className={`nav-item ${location.pathname === '/simulate' ? 'active' : ''}`}>
+                <Activity size={20} />
+                Simulation
+              </Link>
+            </>
           )}
           <Link to="/api-hub" className={`nav-item ${location.pathname === '/api-hub' ? 'active' : ''}`}>
             <Terminal size={20} />

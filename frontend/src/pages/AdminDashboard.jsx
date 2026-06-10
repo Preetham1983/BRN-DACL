@@ -139,6 +139,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeletePolicy = async () => {
+    if (!graphId) return;
+    if (!window.confirm(`Are you sure you want to permanently delete policy '${graphId}' and all its versions?`)) return;
+    setLoading(true);
+    try {
+      await api.deletePolicy(graphId);
+      alert('Policy deleted successfully');
+      setGraphId('');
+      loadPolicies();
+    } catch(e) {
+      alert(`Delete failed: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex-between mb-4">
@@ -156,6 +172,10 @@ export default function AdminDashboard() {
                 <option key={p.graph_id} value={p.graph_id}>{p.domain} ({p.graph_id})</option>
               ))}
             </select>
+
+            <button className="btn btn-danger" onClick={handleDeletePolicy} disabled={!graphId || loading}>
+              Delete Policy
+            </button>
             
             <div className="responsive-tabs" style={{display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '8px'}}>
               <button 

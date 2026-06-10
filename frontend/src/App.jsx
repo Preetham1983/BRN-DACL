@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import QueryTester from './pages/QueryTester';
 import UsersManager from './pages/UsersManager';
 import ApiHub from './pages/ApiHub';
+import SimulationDashboard from './pages/SimulationDashboard';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Layout><Dashboard /></Layout>} />
           <Route path="/query" element={<Layout><QueryTester /></Layout>} />
+          <Route path="/simulate" element={<Layout><SimulationDashboard /></Layout>} />
           <Route path="/users" element={<Layout><UsersManager /></Layout>} />
           <Route path="/api-hub" element={<Layout><ApiHub /></Layout>} />
         </Routes>

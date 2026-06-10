@@ -1,0 +1,15 @@
+{
+  "graph_id": "tagent_policy_tagent_policy",
+  "current_version": 1,
+  "versions": [
+    {
+      "version": 1,
+      "compiled_at": "2026-06-09T10:01:22.087296+00:00",
+      "rule_count": 410,
+      "description": "Programmatically compiled structured policy",
+      "changed_by": "admin",
+      "change_note": "Initial upload",
+      "has_source": true
+    }
+  ]
+}

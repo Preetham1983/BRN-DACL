@@ -1,0 +1,6 @@
+query
+"I am an admin using the jira integration to create a task. I have very_high confidence, enterprise user_tier, and it is currently business_hours."
+"As an authenticated_user, I want to schedule a meeting using the ms365_calendar integration and ms365_calendar_tool. I have high confidence, professional user_tier, require confirm approval_level, and it is business_hours."
+"I am an agent using teams to summarize a meeting using the briefing_tool. My confidence is very_high, approval_level is auto, user_tier is enterprise, and it is business_hours."
+"I am an agent using teams to send a message. My confidence is low and it is outside business_hours."
+"Admin creating task without enough details."

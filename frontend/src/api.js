@@ -31,6 +31,18 @@ export async function fetchPolicies() {
   return res.json();
 }
 
+export async function deletePolicy(graphId) {
+  const res = await fetch(`${API_BASE}/policies/${graphId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Failed to delete policy');
+  }
+  return res.json();
+}
+
 export async function fetchRules(graphId) {
   const res = await fetch(`${API_BASE}/rules/${graphId}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to fetch rules');
@@ -133,5 +145,18 @@ export async function revokeApiKey(keyId) {
     headers: getAuthHeaders()
   });
   if (!res.ok) throw new Error('Failed to revoke API key');
+  return res.json();
+}
+
+export async function simulateQueries(formData) {
+  const res = await fetch(`${API_BASE}/simulate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.detail || 'Simulation failed');
+  }
   return res.json();
 }

@@ -65,10 +65,10 @@ def convert_structured_rules_to_dacl(input_txt_path, output_json_path, max_rules
     # Build the final Graph JSON
     import datetime
     policy = {
-        "graph_id": "tagent_exhaustive_policy",
+        "graph_id": "agents",
         "version": "v1.0.0",
         "domain": "agents",
-        "description": "Exhaustive matrix policy for evaluating Tagent AI agent workflows, including user roles (admin), integrations (Teams, Jira), action_types (read/write), and time contexts (business_hours, after_hours).",
+        "description": "Tagent Workflow Rules compiled directly from pipe-delimited text.",
         "rules": rules,
         "optimization_strategy": "rete",
         "compiled_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -82,8 +82,8 @@ def convert_structured_rules_to_dacl(input_txt_path, output_json_path, max_rules
     print("Done! The Rete engine will automatically load this compiled file.")
 
 if __name__ == "__main__":
-    input_file = "sample_docs/tagent_business_rules_1M.txt"
-    output_file = "compiled/tagent_exhaustive_policy.json"
+    input_file = "temp/tagent_workflow_rules.txt"
+    output_file = "compiled/tagent_workflow_rules.json"
     
-    # We will process 10,000 rules instantly (you can change this to 1,000,000 later)
-    convert_structured_rules_to_dacl(input_file, output_file, max_rules=10000)
+    # Process all rules
+    convert_structured_rules_to_dacl(input_file, output_file, max_rules=100000)

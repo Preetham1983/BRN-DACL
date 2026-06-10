@@ -216,3 +216,32 @@ class PolicyVersionManager:
             "changed": changed,
             "total_changes": len(added) + len(removed) + len(changed),
         }
+
+    def delete_policy(self, graph_id: str) -> None:
+        """Completely remove all files associated with a policy graph_id."""
+        paths = [
+            self._active_path(graph_id),
+            self._meta_path(graph_id)
+        ]
+        
+        # Add all versioned files
+        meta = self.get_meta(graph_id)
+        for entry in meta.get("versions", []):
+            v = entry["version"]
+            paths.append(self._version_path(graph_id, v))
+            if entry.get("has_source"):
+                paths.append(self._source_version_path(graph_id, v))
+                
+        # Also clean up _source.txt if exists
+        paths.append(self.compiled_dir / f"{graph_id}_source.txt")
+                
+        deleted = 0
+        for path in paths:
+            if path.exists():
+                try:
+                    path.unlink()
+                    deleted += 1
+                except OSError as e:
+                    log.warning(f"Failed to delete {path}: {e}")
+                    
+        log.info(f"[VERSION] Deleted policy '{graph_id}' ({deleted} files removed)")

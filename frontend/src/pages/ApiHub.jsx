@@ -11,12 +11,6 @@ export default function ApiHub() {
   const [loading, setLoading] = useState(false);
   const [showNewKey, setShowNewKey] = useState(null);
 
-  useEffect(() => {
-    if (user.role === 'admin') {
-      loadKeys();
-    }
-  }, [user]);
-
   const loadKeys = async () => {
     try {
       const keys = await api.fetchApiKeys();
@@ -25,6 +19,12 @@ export default function ApiHub() {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    if (user.role === 'admin') {
+      loadKeys();
+    }
+  }, [user]);
 
   const handleCreateKey = async (e) => {
     e.preventDefault();
@@ -189,6 +189,71 @@ export default function ApiHub() {
             <pre style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem', overflowX: 'auto'}}>
 {`curl "http://localhost:8000/api/v1/workflow/policies" \\
   -H "X-API-Key: <your_key>"`}
+            </pre>
+          </div>
+          
+          <div className="glass-panel mb-3" style={{padding: '1rem', background: 'rgba(0,0,0,0.2)'}}>
+            <h4><span className="badge badge-primary" style={{marginRight: '0.5rem'}}>GET</span> /api/schema/{"{graph_id}"}</h4>
+            <p className="text-muted mt-2">Dynamic Schema Discovery. Automatically generated JSON schema based on the compiled graph. Perfect for auto-generating Forms or MCP Tool definitions.</p>
+            <pre style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem', overflowX: 'auto'}}>
+{`curl "http://localhost:8000/api/schema/freight_policy_graph" \\
+  -H "X-API-Key: <your_key>"`}
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card mt-4">
+        <h2 className="mb-3"><Terminal size={24} style={{verticalAlign: 'bottom', marginRight: '0.5rem'}} /> Enterprise Integration Snippets</h2>
+        <p>Copy these pre-built snippets to instantly connect DACL to your agentic workflows and automation platforms.</p>
+
+        <div className="mt-4">
+          <div className="glass-panel mb-3" style={{padding: '1rem', background: 'rgba(0,0,0,0.2)'}}>
+            <h4><span className="badge badge-warning" style={{marginRight: '0.5rem'}}>LangChain</span> MCP Tool Server (Python)</h4>
+            <p className="text-muted mt-2">Expose DACL as an MCP tool so your LangGraph agents (like Tagent) can autonomously evaluate rules.</p>
+            <pre style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem', overflowX: 'auto', fontSize: '0.85rem'}}>
+{`import requests
+from langchain.tools import tool
+
+@tool
+def evaluate_business_rule(query: str, domain: str = "it_ticket_routing") -> dict:
+    """Passes natural language to the DACL deterministic rule engine.
+    Always use this tool to determine how to route tickets or approvals."""
+    
+    url = "http://localhost:8000/api/v1/workflow/query"
+    headers = {"X-API-Key": "YOUR_API_KEY"}
+    
+    response = requests.post(url, json={"domain": domain, "query": query}, headers=headers)
+    result = response.json()
+    
+    if result.get("requires_human_review"):
+        return {"status": "blocked", "message": "The LLM could not confidently extract facts. Escalate to human."}
+        
+    return {"status": "success", "decision": result["output"]}
+`}
+            </pre>
+          </div>
+
+          <div className="glass-panel mb-3" style={{padding: '1rem', background: 'rgba(0,0,0,0.2)'}}>
+            <h4><span className="badge badge-primary" style={{marginRight: '0.5rem'}}>Zapier / Make.com</span> Catching DACL Webhooks</h4>
+            <p className="text-muted mt-2">DACL's Durable Action Engine will automatically <code>POST</code> to this URL when a rule passes, allowing you to trigger Slack messages or Jira tickets without writing code.</p>
+            <pre style={{background: 'rgba(0,0,0,0.4)', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem', overflowX: 'auto', fontSize: '0.85rem'}}>
+{`# 1. Start your DACL server with the webhook URL from Zapier/Make.com
+export WEBHOOK_URL="https://hooks.zapier.com/hooks/catch/12345/abcde"
+uv run uvicorn src.dacl_agent.main:app
+
+# 2. When DACL fires a webhook, Zapier will receive this payload:
+{
+  "idempotency_key": "a1b2c3d4...",
+  "decision_id": "9f8e7d6c...",
+  "rule_id": "TAGENT_R001",
+  "output_field": "auto_action",
+  "output_value": "trigger_pagerduty",
+  "facts": {
+    "environment": "production",
+    "impact_level": "critical"
+  }
+}`}
             </pre>
           </div>
         </div>

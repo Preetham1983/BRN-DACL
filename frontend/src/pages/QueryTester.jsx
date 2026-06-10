@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, AlertCircle } from 'lucide-react';
 import * as api from '../api';
 
 export default function QueryTester() {
@@ -139,6 +139,14 @@ export default function QueryTester() {
       {result && (
         <div className="glass-card animate-fade-in">
           <h3 className="mb-2">Result: {result.success ? <span className="text-success">Success</span> : <span className="text-danger">Failed</span>}</h3>
+          
+          {result.requires_human_review && (
+            <div className="mb-3" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', padding: '0.75rem', borderRadius: '8px', color: '#fcd34d', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={20} />
+              <span><strong>Human Review Required:</strong> The AI Fact Extractor had low confidence in parsing this request. Please review before proceeding.</span>
+            </div>
+          )}
+
           <p style={{fontSize: '1.1rem', fontWeight: 500}}>{result.answer}</p>
           
           <div className="mt-4" style={{display: 'grid', gridTemplateColumns: '1fr', gap: '2rem'}}>
