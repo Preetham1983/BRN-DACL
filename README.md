@@ -81,22 +81,9 @@ This will expose the following services:
 
 ## 🔌 Model Context Protocol (MCP)
 
-The DACL Agent includes an MCP Server implementation. You can hook up this server to compatible MCP clients (like Claude Desktop) by configuring their settings:
+The DACL Agent includes an extensive **MCP Server** implementation allowing external Agentic workflows (Claude, Tagent, HR Agents) to programmatically interface with the deterministic rules engine. 
 
-```json
-{
-  "mcpServers": {
-    "dacl-agent": {
-      "command": "python",
-      "args": ["/absolute/path/to/dacl_mcp_server.py"],
-      "env": {
-        "DACL_BASE_URL": "http://localhost:8000/api/v1/workflow",
-        "DACL_API_KEY": "your_api_key_here"
-      }
-    }
-  }
-}
-```
+For complete documentation on MCP setup, configuration, available tools (like smart intent routing), resources, and prompts, please see the **[MCP Documentation](./MCP_README.md)**.
 
 ---
 

@@ -13,12 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy project manifest and source
 COPY pyproject.toml .
 COPY src/ ./src/
-COPY dacl_mcp_server.py .
 
 
 # Install the package and all dependencies
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .
+    && pip install --no-cache-dir --timeout 120 --retries 5 .
 
 # Create compiled graphs directory (persisted via Docker volume)
 RUN mkdir -p compiled

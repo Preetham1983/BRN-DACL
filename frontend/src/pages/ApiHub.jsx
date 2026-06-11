@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Plus, Trash2, Copy, CheckCircle, Terminal } from 'lucide-react';
+import { Key, Plus, Trash2, Copy, CheckCircle, XCircle, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../api';
 
@@ -9,7 +9,13 @@ export default function ApiHub() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyRole, setNewKeyRole] = useState('reader');
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const [showNewKey, setShowNewKey] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const loadKeys = async () => {
     try {
@@ -33,9 +39,10 @@ export default function ApiHub() {
       const res = await api.createApiKey(newKeyName, newKeyRole);
       setShowNewKey(res.raw_key);
       setNewKeyName('');
+      showToast('API Key generated successfully!', 'success');
       loadKeys();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -45,71 +52,90 @@ export default function ApiHub() {
     if (!window.confirm("Are you sure you want to revoke this API key?")) return;
     try {
       await api.revokeApiKey(id);
+      showToast('API Key revoked', 'success');
       loadKeys();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message, 'error');
     }
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    showToast('Copied to clipboard!', 'success');
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" style={{ position: 'relative' }}>
+      {toast && (
+        <div className="animate-fade-in" style={{
+          position: 'fixed', top: '30px', right: '30px', zIndex: 9999,
+          background: toast.type === 'success' ? '#10b981' : '#ef4444',
+          color: '#fff', padding: '12px 24px', borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '10px',
+          fontWeight: 500
+        }}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex-between mb-4">
         <div>
-          <h1>API Integration Hub</h1>
-          <p>Connect your external AI agents and automated workflows to DACL</p>
+          <h1 style={{ marginBottom: '0.5rem' }}>API Integration Hub</h1>
+          <p style={{ margin: 0 }}>Connect your external AI agents and automated workflows to DACL</p>
         </div>
       </div>
 
       {user.role === 'admin' ? (
-        <div className="glass-card mb-4">
-          <h2 className="mb-3 flex-between">
-            <span><Key size={24} style={{verticalAlign: 'bottom', marginRight: '0.5rem'}} /> API Keys</span>
+        <div className="glass-card mb-4" style={{ padding: '2rem' }}>
+          <h2 className="mb-2 flex-between">
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ padding: '8px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', color: '#6366f1', display: 'flex' }}>
+                <Key size={24} />
+              </div>
+              API Access Management
+            </span>
           </h2>
-          <p className="text-muted">Manage API keys for programmatic access to DACL endpoints.</p>
+          <p className="text-muted mb-4">Manage API keys for programmatic access to DACL endpoints.</p>
           
           {showNewKey && (
-            <div className="glass-panel mb-4" style={{padding: '1.5rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981'}}>
-              <h3 className="text-success flex-center" style={{justifyContent: 'flex-start', gap: '0.5rem'}}>
-                <CheckCircle size={20} /> New API Key Created
+            <div className="glass-panel mb-4 animate-fade-in" style={{padding: '1.5rem', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px'}}>
+              <h3 className="text-success flex-center" style={{justifyContent: 'flex-start', gap: '0.75rem', marginBottom: '1rem'}}>
+                <CheckCircle size={24} /> New API Key Created
               </h3>
-              <p>Please copy this key now. It will not be shown again.</p>
-              <div className="flex-between" style={{background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px', marginTop: '1rem'}}>
-                <code style={{fontSize: '1.1rem', color: '#6ee7b7'}}>{showNewKey}</code>
+              <p style={{ color: 'var(--text-secondary)' }}>Please copy this key now. For security reasons, it will not be shown again.</p>
+              <div className="flex-between" style={{background: 'rgba(0,0,0,0.4)', padding: '1.25rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.05)'}}>
+                <code style={{fontSize: '1.2rem', color: '#6ee7b7', letterSpacing: '1px'}}>{showNewKey}</code>
                 <button className="btn btn-secondary" onClick={() => copyToClipboard(showNewKey)}>
                   <Copy size={16} /> Copy
                 </button>
               </div>
-              <button className="btn btn-primary mt-3" onClick={() => setShowNewKey(null)}>I have saved it</button>
+              <button className="btn btn-primary mt-4" onClick={() => setShowNewKey(null)}>I have saved it securely</button>
             </div>
           )}
 
-          <div style={{display: 'flex', gap: '2rem'}}>
-            <div style={{flex: 2}}>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2.5rem'}}>
+            <div style={{flex: 2, overflowX: 'auto'}}>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Created</th>
-                    <th>Actions</th>
+                    <th>Key Name</th>
+                    <th>Permissions</th>
+                    <th>Created At</th>
+                    <th style={{textAlign: 'right'}}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {apiKeys.map(k => (
                     <tr key={k.id}>
-                      <td style={{fontWeight: 600}}>{k.name}</td>
+                      <td style={{fontWeight: 500, color: '#EAEAEA'}}>{k.name}</td>
                       <td>
                         <span className={`badge ${k.role === 'admin' ? 'badge-primary' : k.role === 'analyst' ? 'badge-warning' : 'badge-success'}`}>
-                          {k.role}
+                          {k.role ? k.role.toUpperCase() : 'UNKNOWN'}
                         </span>
                       </td>
                       <td className="text-muted">{new Date(k.created_at).toLocaleString()}</td>
-                      <td>
+                      <td style={{textAlign: 'right'}}>
                         <button className="btn-icon text-danger" onClick={() => handleRevokeKey(k.id)} title="Revoke Key">
                           <Trash2 size={18} />
                         </button>
@@ -117,31 +143,65 @@ export default function ApiHub() {
                     </tr>
                   ))}
                   {apiKeys.length === 0 && (
-                    <tr><td colSpan="4" style={{textAlign: 'center'}}>No API keys found.</td></tr>
+                    <tr><td colSpan="4" style={{textAlign: 'center', padding: '3rem'}}>No active API keys found. Generate one to get started.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <div style={{flex: 1}} className="glass-panel p-3">
-              <h4 className="mb-3">Generate New Key</h4>
-              <form onSubmit={handleCreateKey}>
-                <div className="form-group">
-                  <label className="form-label">Key Name</label>
-                  <input type="text" className="form-input" value={newKeyName} onChange={e => setNewKeyName(e.target.value)} required placeholder="e.g. Jira Agent" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Role</label>
-                  <select className="form-select" value={newKeyRole} onChange={e => setNewKeyRole(e.target.value)}>
-                    <option value="reader">Reader (Query Only)</option>
-                    <option value="analyst">Analyst (Query + Add Rules)</option>
-                    <option value="admin">Admin (Full Access)</option>
-                  </select>
-                </div>
-                <button type="submit" className="btn btn-primary" style={{width: '100%'}} disabled={loading || !newKeyName}>
-                  <Plus size={18} /> Generate Key
-                </button>
-              </form>
+            <div style={{flex: 1}}>
+              <div className="glass-panel" style={{ padding: '2rem', border: '1px solid rgba(99, 102, 241, 0.2)', background: 'rgba(0,0,0,0.3)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <h3 className="mb-4" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6366f1' }}>
+                  <Plus size={20} /> Generate New Key
+                </h3>
+                <form onSubmit={handleCreateKey}>
+                  <div className="form-group mb-4">
+                    <label className="form-label" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Integration Name</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={newKeyName} 
+                      onChange={e => setNewKeyName(e.target.value)} 
+                      required 
+                      placeholder="e.g. Jenkins Pipeline, Zapier" 
+                      style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', height: '46px', fontSize: '1rem' }}
+                    />
+                  </div>
+                  
+                  <div className="form-group mb-4">
+                    <label className="form-label" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Access Role</label>
+                    <div style={{ position: 'relative' }}>
+                      <select 
+                        className="form-select" 
+                        value={newKeyRole} 
+                        onChange={e => setNewKeyRole(e.target.value)}
+                        style={{
+                          width: '100%', 
+                          appearance: 'none', 
+                          cursor: 'pointer',
+                          background: 'rgba(0,0,0,0.4)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          fontWeight: 500,
+                          fontSize: '1rem',
+                          height: '46px',
+                          paddingLeft: '1rem'
+                        }}
+                      >
+                        <option value="reader">Reader (Query Engine Only)</option>
+                        <option value="analyst">Analyst (Query + Edit Rules)</option>
+                        <option value="admin">Admin (Full System Access)</option>
+                      </select>
+                      <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-secondary)' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button type="submit" className="btn btn-primary mt-2" style={{width: '100%', height: '46px', fontSize: '1rem', fontWeight: 600}} disabled={loading || !newKeyName}>
+                    {loading ? 'Generating...' : 'Create Secret Key'}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         </div>

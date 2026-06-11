@@ -73,6 +73,16 @@ graph TD
     UsersManager -->|Manage Users| API
     Login -->|Obtain JWT| API
 
+    %% MCP Tier
+    subgraph MCPServer ["Model Context Protocol Interface"]
+        MCPApp["MCP Server - src/dacl_agent/dacl_mcp_server.py"]:::server
+        MCPSmartRouter["Azure OpenAI GPT-4o - Intent Routing"]:::compile
+    end
+
+    %% MCP Connections
+    MCPApp -->|REST API - Queries & Schema| API
+    MCPApp -->|Auto Intent Routing| MCPSmartRouter
+
     %% Gateway Routing
     API --> AuthC
     AuthC -->|Authorization Passed| AgentCache
@@ -532,3 +542,17 @@ The final execution output returned to the React portal contains the completed a
   }
 }
 ```
+
+---
+
+## 6. Model Context Protocol (MCP) Server Integration
+
+The **DACL MCP Server** (`src/dacl_agent/dacl_mcp_server.py`) provides a standard interface for external agentic workflows (like Claude, custom agents, HR assistants) to interact with the DACL deterministic engine. 
+
+### Key Integration Mechanisms
+1. **Tool Invocation (`validate_scenario`)**: Agents pass unstructured text (e.g., "What is the premium for a 45-year-old with a BMI of 26?") and an optional domain.
+2. **Smart Intent Routing**: If the agent sets `domain="auto"` (or omits it), the MCP server uses a rapid LLM call to Azure OpenAI to classify the scenario against the available DACL policies (fetched from `/api/policies`) and routes it to the correct backend domain automatically.
+3. **Resource Provisioning (`dacl://policies/{graph_id}/schema`)**: The server dynamically generates and exposes the required JSON schemas (extracted variables needed for mathematical completeness) for any given policy so an agent knows exactly what to ask the user.
+4. **Base64 Document Validation**: The `validate_document_base64` tool enables agents running in remote sandboxes (without local filesystem mounts) to send full PDFs and Excels to the DACL engine for deterministic validation via the FastAPI `query-doc` endpoint.
+
+For comprehensive MCP setup, configuration, and prompt details, refer to the [MCP README](./MCP_README.md).

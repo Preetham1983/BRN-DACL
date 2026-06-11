@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, Users, LogOut, PlayCircle, Terminal, Activity } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Users, LogOut, PlayCircle, Terminal, Activity, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout({ children }) {
@@ -39,6 +39,10 @@ export default function Layout({ children }) {
           <Link to="/api-hub" className={`nav-item ${location.pathname === '/api-hub' ? 'active' : ''}`}>
             <Terminal size={20} />
             API Hub
+          </Link>
+          <Link to="/mcp-docs" className={`nav-item ${location.pathname === '/mcp-docs' ? 'active' : ''}`}>
+            <BookOpen size={20} />
+            MCP Docs
           </Link>
           {user.role === 'admin' && (
             <Link to="/users" className={`nav-item ${location.pathname === '/users' ? 'active' : ''}`}>

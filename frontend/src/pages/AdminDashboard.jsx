@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, UploadCloud, CheckCircle, XCircle, ChevronDown, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../api';
 
@@ -14,6 +14,14 @@ export default function AdminDashboard() {
   const [errorMsg, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState('rules'); 
   const [mermaidReady, setMermaidReady] = useState(false);
+  
+  // Custom Toast State
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Load Mermaid dynamically
   useEffect(() => {
@@ -61,11 +69,11 @@ export default function AdminDashboard() {
     setErrorMsg('');
     try {
       await api.uploadPolicy(formData);
-      alert('Policy uploaded and compiled successfully!');
+      showToast('Policy uploaded and compiled successfully!', 'success');
       loadPolicies();
       setActiveTab('rules');
     } catch(err) {
-      setErrorMsg(err.message);
+      showToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -132,10 +140,10 @@ export default function AdminDashboard() {
     if (!window.confirm(`Are you sure you want to rollback to v${versionInt}?`)) return;
     try {
       await api.rollbackPolicy(graphId, versionInt, `Rolled back via UI by ${user.username}`);
-      alert(`Successfully rolled back to v${versionInt}`);
+      showToast(`Successfully rolled back to v${versionInt}`, 'success');
       loadVersions();
     } catch(e) {
-      alert(`Rollback failed: ${e.message}`);
+      showToast(`Rollback failed: ${e.message}`, 'error');
     }
   };
 
@@ -145,145 +153,230 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       await api.deletePolicy(graphId);
-      alert('Policy deleted successfully');
+      showToast('Policy deleted successfully', 'success');
       setGraphId('');
       loadPolicies();
     } catch(e) {
-      alert(`Delete failed: ${e.message}`);
+      showToast(`Delete failed: ${e.message}`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" style={{ position: 'relative' }}>
+      
+      {/* Custom Toast Popup */}
+      {toast && (
+        <div className="animate-fade-in" style={{
+          position: 'fixed', top: '30px', right: '30px', zIndex: 9999,
+          background: toast.type === 'success' ? '#10b981' : '#ef4444',
+          color: '#fff', padding: '12px 24px', borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '10px',
+          fontWeight: 500
+        }}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+          {toast.message}
+        </div>
+      )}
+
+      {/* Header with Upload Policy on the right */}
       <div className="flex-between mb-4">
         <div>
-          <h1>Policy Manager</h1>
-          <p>Manage rules, versions, and deterministic logic</p>
+          <h1 style={{ marginBottom: '0.5rem' }}>Policy Manager</h1>
+          <p style={{ margin: 0 }}>Manage rules, versions, and deterministic logic</p>
         </div>
+        <button 
+          className="btn btn-primary" 
+          style={{ padding: '0.75rem 1.5rem', fontWeight: 600, fontSize: '1rem' }}
+          onClick={() => setActiveTab('upload')}
+        >
+          <UploadCloud size={20} />
+          Upload New Policy
+        </button>
       </div>
 
-      <div className="glass-card mb-4">
-        <div className="flex-between mb-3">
-          <div style={{display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap'}}>
-            <select className="form-select" style={{width: 'auto', flex: 1}} value={graphId} onChange={e => setGraphId(e.target.value)}>
-              {policies.map(p => (
-                <option key={p.graph_id} value={p.graph_id}>{p.domain} ({p.graph_id})</option>
-              ))}
-            </select>
+      <div className="glass-card mb-4" style={{ padding: '1.5rem 2rem' }}>
+        <div className="flex-between mb-4">
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+            
+            {/* Improved Domain Dropdown UI */}
+            <div style={{ position: 'relative', minWidth: '300px', flex: 1 }}>
+              <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>Domain:</span>
+              </div>
+              <select 
+                className="form-select" 
+                style={{
+                  width: '100%', 
+                  paddingLeft: '85px', 
+                  appearance: 'none', 
+                  cursor: 'pointer',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  fontWeight: 500,
+                  fontSize: '1rem',
+                  height: '46px'
+                }} 
+                value={graphId} 
+                onChange={e => { setGraphId(e.target.value); if (activeTab === 'upload') setActiveTab('rules'); }}
+              >
+                {policies.map(p => (
+                  <option key={p.graph_id} value={p.graph_id}>{p.domain} ({p.graph_id})</option>
+                ))}
+              </select>
+              <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-secondary)' }}>
+                <ChevronDown size={18} />
+              </div>
+            </div>
 
-            <button className="btn btn-danger" onClick={handleDeletePolicy} disabled={!graphId || loading}>
-              Delete Policy
+            <button 
+              className="btn btn-danger" 
+              onClick={handleDeletePolicy} 
+              disabled={!graphId || loading || activeTab === 'upload'}
+              style={{ height: '46px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Trash2 size={16} /> Delete Domain
             </button>
             
-            <div className="responsive-tabs" style={{display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '8px'}}>
+            <div className="responsive-tabs" style={{display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '8px', height: '46px'}}>
               <button 
                 className={`btn ${activeTab === 'rules' ? 'btn-primary' : 'btn-secondary'}`} 
-                style={{border: 'none'}} 
+                style={{border: 'none', borderRadius: '6px', padding: '0 1.5rem'}} 
                 onClick={() => setActiveTab('rules')}>
                 Active Rules
               </button>
               <button 
                 className={`btn ${activeTab === 'versions' ? 'btn-primary' : 'btn-secondary'}`} 
-                style={{border: 'none'}} 
+                style={{border: 'none', borderRadius: '6px', padding: '0 1.5rem'}} 
                 onClick={() => setActiveTab('versions')}>
                 Version History
               </button>
               <button 
                 className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`} 
-                style={{border: 'none'}} 
+                style={{border: 'none', borderRadius: '6px', padding: '0 1.5rem'}} 
                 onClick={() => setActiveTab('graph')}>
                 Visual Graph
-              </button>
-              <button 
-                className={`btn ${activeTab === 'upload' ? 'btn-primary' : 'btn-secondary'}`} 
-                style={{border: 'none'}} 
-                onClick={() => setActiveTab('upload')}>
-                Upload Policy
               </button>
             </div>
           </div>
         </div>
         
-        {loading ? <p>Loading data...</p> : errorMsg ? (
-          <div className="glass-panel" style={{padding: '1.5rem', textAlign: 'center'}}>
-            <AlertTriangle size={32} color="#EEDD82" style={{marginBottom: '1rem'}} />
-            <h4>{errorMsg}</h4>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading data...</div>
+        ) : activeTab === 'upload' ? (
+          <div className="animate-fade-in" style={{padding: '1rem 0'}}>
+            <h2 className="mb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>Upload & Compile Policy</h2>
+            <form onSubmit={handleUploadSubmit} style={{ maxWidth: '600px' }}>
+              <div className="form-group">
+                <label className="form-label">Domain Key (e.g. freight_v2)</label>
+                <input type="text" name="domain" className="form-input" required placeholder="Unique identifier for this policy" style={{ background: 'rgba(0,0,0,0.2)' }} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Company Name</label>
+                <input type="text" name="company" className="form-input" required placeholder="E.g. Nexus Logistics" style={{ background: 'rgba(0,0,0,0.2)' }} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Policy Document</label>
+                <input type="file" name="file" className="form-input" required accept=".pdf,.txt,.xlsx,.xls,.csv,.docx" style={{ background: 'rgba(0,0,0,0.2)' }} />
+                <p className="text-muted mt-2" style={{fontSize: '0.85rem'}}>
+                  Supported formats: PDF, TXT, Excel, CSV, DOCX. The LLM will automatically parse and compile this into a deterministic graph.
+                </p>
+              </div>
+              <div className="flex-between mt-4">
+                <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: '0.75rem 2rem' }}>
+                  {loading ? 'Compiling Rules...' : 'Upload & Compile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : errorMsg ? (
+          <div className="glass-panel" style={{padding: '3rem', textAlign: 'center', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
+            <AlertTriangle size={48} color="#f59e0b" style={{marginBottom: '1rem'}} />
+            <h3 style={{ color: '#EAEAEA' }}>{errorMsg}</h3>
           </div>
         ) : activeTab === 'rules' ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Rule ID</th>
-                <th>Description</th>
-                <th>Priority</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map(r => (
-                <tr key={r.rule_id}>
-                  <td style={{fontFamily: 'monospace', color: 'var(--accent-primary)'}}>{r.rule_id}</td>
-                  <td>{r.description}</td>
-                  <td><span className="badge badge-warning">{r.priority}</span></td>
-                  <td><span className="badge badge-success">{r.action.output_field} = {r.action.formula}</span></td>
+          <div className="animate-fade-in" style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Rule ID</th>
+                  <th>Description</th>
+                  <th>Priority</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-              {rules.length === 0 && (
-                <tr><td colSpan="4" style={{textAlign: 'center'}}>No rules found. Compile the graph first.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rules.map(r => (
+                  <tr key={r.rule_id}>
+                    <td style={{fontFamily: 'monospace', color: 'var(--accent-primary)'}}>{r.rule_id}</td>
+                    <td>{r.description}</td>
+                    <td><span className="badge badge-warning">{r.priority}</span></td>
+                    <td><span className="badge badge-success">{r.action.output_field} = {r.action.formula}</span></td>
+                  </tr>
+                ))}
+                {rules.length === 0 && (
+                  <tr><td colSpan="4" style={{textAlign: 'center', padding: '3rem'}}>No rules found. Compile the graph first.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         ) : activeTab === 'versions' ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Version</th>
-                <th>Hash / ID</th>
-                <th>Timestamp</th>
-                <th>Changed By</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {versions.map(v => (
-                <tr key={v.version_int}>
-                  <td>
-                    <span className={`badge ${v.version_int === currentVersion ? 'badge-success' : 'badge-primary'}`}>
-                      v{v.version_int} {v.version_int === currentVersion && '(Active)'}
-                    </span>
-                  </td>
-                  <td style={{fontFamily: 'monospace', fontSize: '0.85rem'}}>{v.version_id.substring(0, 8)}...</td>
-                  <td className="text-muted">{new Date(v.created_at).toLocaleString()}</td>
-                  <td>{v.metadata?.changed_by || 'system'}</td>
-                  <td>
-                    {v.version_int !== currentVersion && (
-                      <button className="btn btn-danger" style={{padding: '0.3rem 0.6rem', fontSize: '0.8rem'}} onClick={() => handleRollback(v.version_int)}>
-                        Rollback
-                      </button>
-                    )}
-                  </td>
+          <div className="animate-fade-in" style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Version</th>
+                  <th>Hash / ID</th>
+                  <th>Timestamp</th>
+                  <th>Changed By</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-              {versions.length === 0 && (
-                <tr><td colSpan="5" style={{textAlign: 'center'}}>No version history found.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {versions.map(v => (
+                  <tr key={v.version_int}>
+                    <td>
+                      <span className={`badge ${v.version_int === currentVersion ? 'badge-success' : 'badge-primary'}`}>
+                        v{v.version_int} {v.version_int === currentVersion && '(Active)'}
+                      </span>
+                    </td>
+                    <td style={{fontFamily: 'monospace', fontSize: '0.85rem'}}>{v.version_id.substring(0, 8)}...</td>
+                    <td className="text-muted">{new Date(v.created_at).toLocaleString()}</td>
+                    <td>{v.metadata?.changed_by || 'system'}</td>
+                    <td>
+                      {v.version_int !== currentVersion && (
+                        <button className="btn btn-danger" style={{padding: '0.3rem 0.6rem', fontSize: '0.8rem'}} onClick={() => handleRollback(v.version_int)}>
+                          Rollback
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {versions.length === 0 && (
+                  <tr><td colSpan="5" style={{textAlign: 'center', padding: '3rem'}}>No version history found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         ) : activeTab === 'graph' ? (
-          <div className="glass-panel animate-fade-in" style={{padding: '2rem'}}>
-            <h2 className="mb-3">Policy Logic Graph</h2>
-            <p className="text-muted mb-4">A visual DAG (Directed Acyclic Graph) of the policy rules and their priorities.</p>
+          <div className="animate-fade-in" style={{padding: '1rem 0'}}>
+            <div className="flex-between mb-4">
+              <div>
+                <h2 className="mb-1">Policy Logic Graph</h2>
+                <p className="text-muted m-0">A visual DAG (Directed Acyclic Graph) of the policy rules and their priorities.</p>
+              </div>
+            </div>
             
             {rules.length === 0 ? (
-              <p style={{textAlign: 'center'}}>No rules to display.</p>
+              <div style={{ padding: '3rem', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px' }}>No rules to display.</div>
             ) : (
               <div 
                 id="mermaid-container" 
                 className="mermaid" 
                 style={{
-                  background: 'rgba(255,255,255,0.05)', 
+                  background: 'rgba(0,0,0,0.3)', 
+                  border: '1px solid rgba(255,255,255,0.05)',
                   borderRadius: '12px', 
                   padding: '2rem', 
                   textAlign: 'center',
@@ -330,32 +423,6 @@ export default function AdminDashboard() {
                 })()}
               </div>
             )}
-          </div>
-        ) : activeTab === 'upload' ? (
-          <div className="glass-panel animate-fade-in" style={{padding: '2rem'}}>
-            <h2 className="mb-3">Upload New Policy</h2>
-            <form onSubmit={handleUploadSubmit}>
-              <div className="form-group">
-                <label className="form-label">Domain Key (e.g. freight_v2)</label>
-                <input type="text" name="domain" className="form-input" required placeholder="Unique identifier for this policy" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Company Name</label>
-                <input type="text" name="company" className="form-input" required placeholder="E.g. Nexus Logistics" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Policy Document (PDF / TXT / Excel / CSV)</label>
-                <input type="file" name="file" className="form-input" required accept=".pdf,.txt,.xlsx,.xls,.csv,.docx" />
-              </div>
-              <p className="text-muted mb-3" style={{fontSize: '0.85rem'}}>
-                Uploading a document will automatically parse it and compile a new DACL graph using the LLM agent. Supported formats: PDF, TXT, XLSX, XLS, CSV, DOCX.
-              </p>
-              <div className="flex-between mt-4">
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Uploading & Compiling...' : 'Upload & Compile'}
-                </button>
-              </div>
-            </form>
           </div>
         ) : null}
       </div>

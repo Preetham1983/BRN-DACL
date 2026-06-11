@@ -4,7 +4,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend
     container_name: dacl_backend
     ports:
       - "8000:8000"
@@ -26,7 +26,7 @@ services:
   mcp:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.mcp
     container_name: dacl_mcp
     ports:
       - "8080:8080"
@@ -35,7 +35,6 @@ services:
     environment:
       - DACL_BASE_URL=http://backend:8000/api/v1/workflow
       - DACL_MCP_HOST=0.0.0.0
-    command: python dacl_mcp_server.py
     depends_on:
       backend:
         condition: service_healthy

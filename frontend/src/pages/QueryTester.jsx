@@ -89,12 +89,34 @@ export default function QueryTester() {
       
       <div className="glass-card mb-4">
         <div className="form-group">
-          <label className="form-label">Domain</label>
-          <select className="form-select" value={domain} onChange={e => setDomain(e.target.value)}>
-            {policies.map(p => (
-              <option key={p.graph_id} value={p.graph_id}>{p.domain} ({p.graph_id})</option>
-            ))}
-          </select>
+          <div style={{ position: 'relative', maxWidth: '400px' }}>
+            <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>Domain:</span>
+            </div>
+            <select 
+              className="form-select" 
+              style={{
+                width: '100%', 
+                paddingLeft: '85px', 
+                appearance: 'none', 
+                cursor: 'pointer',
+                background: 'rgba(0,0,0,0.4)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                fontWeight: 500,
+                fontSize: '1rem',
+                height: '46px'
+              }} 
+              value={domain} 
+              onChange={e => setDomain(e.target.value)}
+            >
+              {policies.map(p => (
+                <option key={p.graph_id} value={p.graph_id}>{p.domain} ({p.graph_id})</option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-secondary)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
         </div>
         <div className="form-group">
           <label className="form-label">Input Mode</label>

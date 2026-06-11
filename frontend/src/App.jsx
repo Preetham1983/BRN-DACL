@@ -10,6 +10,7 @@ import QueryTester from './pages/QueryTester';
 import UsersManager from './pages/UsersManager';
 import ApiHub from './pages/ApiHub';
 import SimulationDashboard from './pages/SimulationDashboard';
+import McpDocs from './pages/McpDocs';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/simulate" element={<Layout><SimulationDashboard /></Layout>} />
           <Route path="/users" element={<Layout><UsersManager /></Layout>} />
           <Route path="/api-hub" element={<Layout><ApiHub /></Layout>} />
+          <Route path="/mcp-docs" element={<Layout><McpDocs /></Layout>} />
         </Routes>
       </AuthProvider>
     </Router>
